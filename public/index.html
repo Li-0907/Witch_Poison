@@ -1,0 +1,723 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>女巫的毒药蛋糕</title>
+  <link rel="stylesheet" href="style.css">
+  <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+
+<body>
+  <div class="container">
+    <header>
+      <h1><i class="fas fa-hat-wizard"></i> 女巫的毒药蛋糕</h1>
+      <p class="subtitle">双人对战游戏 - 选择你的毒药，避开对手的陷阱</p>
+    </header>
+
+    <div class="game-area">
+      <!-- 主菜单屏幕 -->
+      <div id="main-menu" class="screen active">
+        <div class="instructions">
+          <h3><i class="fas fa-book"></i> 游戏规则</h3>
+          <ul>
+            <li><strong>目标</strong>: 避免选中任何毒药蛋糕，让对手选中毒药</li>
+            <li><strong>设置阶段</strong>:
+              <ul>
+                <li>房主创建房间并设置蛋糕网格大小</li>
+                <li>其他玩家通过4位房间号加入</li>
+              </ul>
+            </li>
+            <li><strong>毒药选择阶段</strong>:
+              <ul>
+                <li>双方玩家各自秘密选择一个蛋糕作为自己的毒药</li>
+                <li>毒药位置对对方保密</li>
+              </ul>
+            </li>
+            <li><strong>游戏阶段</strong>:
+              <ul>
+                <li>玩家轮流选择蛋糕</li>
+                <li><strong>重要规则</strong>: 选中任意毒药（自己的或对方的）立即输掉游戏</li>
+                <li>最后存活的玩家获胜</li>
+              </ul>
+            </li>
+            <li><strong>策略提示</strong>: 尽量记住自己毒药的位置，同时猜测对方毒药可能的位置</li>
+          </ul>
+        </div>
+
+        <div class="form-group">
+          <button id="create-room-btn" class="btn-primary">
+            <i class="fas fa-plus-circle"></i> 创建房间
+          </button>
+        </div>
+
+        <div class="form-group">
+          <p style="text-align: center; margin: 20px 0;">或</p>
+          <button id="join-room-btn" class="btn-secondary">
+            <i class="fas fa-sign-in-alt"></i> 加入房间
+          </button>
+        </div>
+      </div>
+
+      <!-- 创建房间屏幕 -->
+      <div id="create-room-screen" class="screen">
+        <h2><i class="fas fa-home"></i> 创建房间</h2>
+
+        <div class="form-group">
+          <label for="room-id">房间号 (4位数字)</label>
+          <input type="text" id="room-id" maxlength="4" placeholder="例如: 1234">
+        </div>
+
+        <div class="form-group">
+          <label for="grid-size">蛋糕网格大小 (N×N)</label>
+          <select id="grid-size">
+            <option value="4">4×4 (16个蛋糕)</option>
+            <option value="5" selected>5×5 (25个蛋糕)</option>
+            <option value="6">6×6 (36个蛋糕)</option>
+            <option value="7">7×7 (49个蛋糕)</option>
+            <option value="8">8×8 (64个蛋糕)</option>
+          </select>
+        </div>
+
+        <div class="form-group">
+          <button id="create-room-confirm-btn" class="btn-primary">
+            <i class="fas fa-magic"></i> 创建房间
+          </button>
+          <button id="back-to-menu-btn" class="btn-secondary leave-room-btn">
+            <i class="fas fa-arrow-left"></i> 返回主菜单
+          </button>
+        </div>
+      </div>
+
+      <!-- 加入房间屏幕 -->
+      <div id="join-room-screen" class="screen">
+        <h2><i class="fas fa-door-open"></i> 加入房间</h2>
+
+        <div class="form-group">
+          <label for="join-room-id">输入房间号</label>
+          <input type="text" id="join-room-id" maxlength="4" placeholder="请输入4位数字">
+        </div>
+
+        <div class="form-group">
+          <button id="join-room-confirm-btn" class="btn-primary">
+            <i class="fas fa-sign-in-alt"></i> 加入房间
+          </button>
+          <button id="back-to-menu-btn-2" class="btn-secondary leave-room-btn">
+            <i class="fas fa-arrow-left"></i> 返回主菜单
+          </button>
+        </div>
+      </div>
+
+      <!-- 等待玩家屏幕 -->
+      <div id="waiting-screen" class="screen">
+        <h2><i class="fas fa-hourglass-half"></i> 等待玩家加入</h2>
+
+        <div class="room-info">
+          <p><i class="fas fa-door-closed"></i> 房间号: <span id="waiting-room-id">----</span></p>
+          <p><i class="fas fa-user"></i> 状态: <span id="waiting-status">等待玩家加入...</span></p>
+        </div>
+
+        <div class="form-group">
+          <button id="cancel-waiting-btn" class="btn-secondary leave-room-btn">
+            <i class="fas fa-times"></i> 取消并返回
+          </button>
+        </div>
+      </div>
+
+      <!-- 游戏屏幕 -->
+      <div id="game-screen" class="screen">
+        <div class="room-info">
+          <p><i class="fas fa-door-closed"></i> 房间号: <span id="game-room-id">----</span> |
+            <i class="fas fa-user"></i> 你的角色: <span id="player-role">---</span>
+          </p>
+        </div>
+
+        <div class="players-info">
+          <div id="host-card" class="player-card host">
+            <div class="player-name">房主</div>
+            <div class="player-status" id="host-status">等待中...</div>
+          </div>
+
+          <div id="guest-card" class="player-card guest">
+            <div class="player-name">玩家2</div>
+            <div class="player-status" id="guest-status">等待中...</div>
+          </div>
+        </div>
+
+        <!-- 添加游戏设置区域，只有房主且游戏未开始时显示 -->
+        <div id="game-setup" class="game-setup" style="display: none;">
+          <h3><i class="fas fa-cog"></i> 游戏设置</h3>
+          <div class="form-group">
+            <label for="grid-size-select">蛋糕网格大小 (N×N)</label>
+            <select id="grid-size-select">
+              <option value="3">3×3 (9个蛋糕)</option>
+              <option value="4">4×4 (16个蛋糕)</option>
+              <option value="5" selected>5×5 (25个蛋糕)</option>
+              <option value="6">6×6 (36个蛋糕)</option>
+              <option value="7">7×7 (49个蛋糕)</option>
+              <option value="8">8×8 (64个蛋糕)</option>
+            </select>
+          </div>
+          <button id="start-game-btn" class="btn-primary">
+            <i class="fas fa-play"></i> 开始游戏
+          </button>
+        </div>
+
+        <div class="game-status">
+          <div id="status-message" class="status-message">游戏即将开始</div>
+          <div id="turn-indicator" class="turn-indicator"></div>
+        </div>
+
+        <div id="cake-grid-container" style="display: none;">
+          <div id="cake-grid" class="cake-grid"></div>
+          <p id="grid-instruction">点击选择一个蛋糕</p>
+        </div>
+
+        <div id="game-over-screen" class="game-over" style="display: none;">
+          <div id="winner-message" class="winner">游戏结束!</div>
+          <div id="result-details" class="result-details"></div>
+          <div class="form-group">
+            <button id="play-again-btn" class="btn-primary">
+              <i class="fas fa-redo"></i> 再玩一次
+            </button>
+            <button id="exit-game-btn" class="btn-secondary leave-room-btn">
+              <i class="fas fa-sign-out-alt"></i> 退出游戏
+            </button>
+          </div>
+        </div>
+      </div>
+
+
+    </div>
+  </div>
+
+  <script>
+    // WebSocket连接
+    let ws;
+    let playerRole = '';
+    let roomId = '';
+    let gridSize = 5;
+    let myPoisonPosition = null;
+    let gameState = '';
+    let isMyTurn = false;
+    let selectedCakes = new Set();
+
+    // DOM元素
+    const screens = {
+      mainMenu: document.getElementById('main-menu'),
+      createRoom: document.getElementById('create-room-screen'),
+      joinRoom: document.getElementById('join-room-screen'),
+      waiting: document.getElementById('waiting-screen'),
+      game: document.getElementById('game-screen')
+    };
+
+    // 切换屏幕
+    function showScreen(screenName) {
+      Object.keys(screens).forEach(key => {
+        screens[key].classList.remove('active');
+      });
+      screens[screenName].classList.add('active');
+    }
+
+    // 连接WebSocket服务器
+    function connectWebSocket() {
+      const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+      const wsUrl = `${protocol}//${window.location.host}`;
+
+      ws = new WebSocket(wsUrl);
+
+      ws.onopen = () => {
+        console.log('已连接到游戏服务器');
+      };
+
+      ws.onmessage = (event) => {
+        const data = JSON.parse(event.data);
+        handleServerMessage(data);
+      };
+
+      ws.onclose = () => {
+        console.log('与服务器断开连接');
+        alert('与服务器断开连接，请刷新页面重试');
+      };
+
+      ws.onerror = (error) => {
+        console.error('WebSocket错误:', error);
+      };
+    }
+
+    // 处理服务器消息
+    function handleServerMessage(data) {
+      console.log('收到服务器消息:', data);
+
+      switch (data.type) {
+        case 'room_created':
+          resetGameState(); // 重置状态后再设置新房间
+          playerRole = 'host';
+          roomId = data.roomId;
+          gameState = 'waiting';
+          updateGameScreen();
+          showScreen('game');
+          break;
+
+        case 'player_joined':
+          resetGameState(); // 重置状态后再加入房间
+          playerRole = data.role;
+          roomId = data.roomId;
+          gameState = data.state;
+          updateGameScreen();
+          showScreen('game');
+          break;
+
+        case 'error':
+          alert('错误: ' + data.message);
+          break;
+
+        case 'game_started':
+          gridSize = data.gridSize;
+          gameState = data.state;
+          isMyTurn = data.isTurn;
+          updateGameScreen();
+          createCakeGrid();
+          break;
+
+        case 'poison_chosen':
+          // 玩家自己选择了毒药
+          gameState = 'choosing_poison';
+          myPoisonPosition = data.yourPoison;
+          isMyTurn = false; // 毒药选择阶段没有回合概念
+          updateCakeGrid();
+          updateGameScreen();
+          break;
+
+        case 'opponent_poison_chosen':
+          // 对手选择了毒药
+          gameState = 'choosing_poison';
+          updateGameScreen();
+          break;
+
+        case 'all_poisons_chosen':
+          // 双方都选择了毒药，游戏开始
+          gameState = 'playing';
+          myPoisonPosition = data.yourPoison;
+          isMyTurn = data.isTurn;
+          updateCakeGrid();
+          updateGameScreen();
+          break;
+
+        case 'cake_selected':
+          selectedCakes = new Set(data.selectedCakes);
+          isMyTurn = data.isTurn;
+          updateCakeGrid();
+          updateGameScreen();
+          break;
+
+        case 'game_over':
+          gameState = 'finished';
+          showGameOver(data);
+          break;
+
+        case 'game_restarted':
+          gridSize = data.gridSize;
+          gameState = data.state;
+          isMyTurn = data.isTurn;
+          myPoisonPosition = null;
+          selectedCakes = new Set();
+          resetGameScreen();
+          createCakeGrid();
+          break;
+
+        case 'opponent_disconnected':
+          alert('对手已断开连接');
+          if (ws && ws.readyState === WebSocket.OPEN && roomId) {
+            sendMessage('leave_room', {});
+          }
+          resetGameState();
+          showScreen('mainMenu');
+          break;
+
+        case 'room_left':
+          // 成功离开房间，不需要额外操作
+          console.log('已离开房间');
+          break;
+      }
+    }
+
+    // 发送消息到服务器
+    function sendMessage(type, data) {
+      if (ws && ws.readyState === WebSocket.OPEN) {
+        const message = { type, ...data };
+        ws.send(JSON.stringify(message));
+      } else {
+        alert('无法连接到服务器，请刷新页面重试');
+      }
+    }
+
+    // 更新游戏屏幕
+    function updateGameScreen() {
+      document.getElementById('game-room-id').textContent = roomId;
+      document.getElementById('player-role').textContent = playerRole === 'host' ? '房主' : '玩家2';
+
+      // 更新玩家卡片
+      const hostCard = document.getElementById('host-card');
+      const guestCard = document.getElementById('guest-card');
+      const hostStatus = document.getElementById('host-status');
+      const guestStatus = document.getElementById('guest-status');
+      const gameSetup = document.getElementById('game-setup');
+
+      if (playerRole === 'host') {
+        hostCard.classList.add('you');
+        guestCard.classList.remove('you');
+        hostStatus.textContent = '你';
+        guestStatus.textContent = gameState === 'waiting' ? '等待中...' : '已加入';
+
+        // 如果是房主且游戏状态为等待，显示游戏设置
+        if (gameState === 'waiting' || gameState === 'setting_cakes') {
+          gameSetup.style.display = 'block';
+        } else {
+          gameSetup.style.display = 'none';
+        }
+      } else {
+        hostCard.classList.remove('you');
+        guestCard.classList.add('you');
+        hostStatus.textContent = '已加入';
+        guestStatus.textContent = '你';
+        gameSetup.style.display = 'none'; // 访客不显示游戏设置
+      }
+
+      // 更新状态消息
+      const statusMessage = document.getElementById('status-message');
+      const turnIndicator = document.getElementById('turn-indicator');
+      const gridContainer = document.getElementById('cake-grid-container');
+
+      if (gameState === 'waiting' || gameState === 'setting_cakes') {
+        if (playerRole === 'host') {
+          statusMessage.textContent = '请设置蛋糕网格大小';
+        } else {
+          statusMessage.textContent = '等待房主设置游戏...';
+        }
+        turnIndicator.textContent = '';
+        gridContainer.style.display = 'none';
+      } else if (gameState === 'choosing_poison') {
+        gridContainer.style.display = 'block';
+        if (myPoisonPosition) {
+          statusMessage.textContent = '你已选择毒药，等待对手选择...';
+          turnIndicator.textContent = '';
+        } else {
+          statusMessage.textContent = '请选择你的毒药蛋糕';
+          turnIndicator.textContent = '点击蛋糕选择毒药';
+        }
+      } else if (gameState === 'playing') {
+        gridContainer.style.display = 'block';
+        if (isMyTurn) {
+          statusMessage.textContent = '请选择一个蛋糕';
+          turnIndicator.textContent = '轮到你了！';
+        } else {
+          statusMessage.textContent = '等待对手选择...';
+          turnIndicator.textContent = '对手的回合';
+        }
+      } else if (gameState === 'finished') {
+        gridContainer.style.display = 'none';
+        turnIndicator.textContent = '';
+      }
+    }
+
+    // 重置游戏屏幕
+    function resetGameScreen() {
+      document.getElementById('game-over-screen').style.display = 'none';
+      document.getElementById('cake-grid-container').style.display = 'block';
+      updateGameScreen();
+    }
+
+    // 创建蛋糕网格
+    function createCakeGrid() {
+      const cakeGrid = document.getElementById('cake-grid');
+      cakeGrid.innerHTML = '';
+
+      // 设置网格样式
+      cakeGrid.style.gridTemplateColumns = `repeat(${gridSize}, 1fr)`;
+
+      // 创建蛋糕单元格
+      for (let row = 0; row < gridSize; row++) {
+        for (let col = 0; col < gridSize; col++) {
+          const cell = document.createElement('div');
+          cell.className = 'cake-cell';
+          cell.dataset.row = row;
+          cell.dataset.col = col;
+
+          // 检查是否已选择
+          const posKey = `${row},${col}`;
+          if (selectedCakes.has(posKey)) {
+            cell.classList.add('selected');
+            cell.onclick = null;
+          } else {
+            // 在毒药选择阶段，所有未选择的蛋糕都可以点击
+            if (gameState === 'choosing_poison' && !myPoisonPosition) {
+              cell.onclick = () => handleCakeClick(row, col);
+            }
+          }
+
+          cakeGrid.appendChild(cell);
+        }
+      }
+
+      document.getElementById('cake-grid-container').style.display = 'block';
+    }
+
+    // 更新蛋糕网格
+    function updateCakeGrid() {
+      const cakeCells = document.querySelectorAll('.cake-cell');
+      cakeCells.forEach(cell => {
+        const row = parseInt(cell.dataset.row);
+        const col = parseInt(cell.dataset.col);
+        const posKey = `${row},${col}`;
+
+        // 移除所有事件监听器
+        cell.onclick = null;
+
+        // 如果蛋糕已被选择，标记为已选择
+        if (selectedCakes.has(posKey)) {
+          cell.classList.add('selected');
+          cell.onclick = null;
+        } else if (gameState === 'playing' && isMyTurn) {
+          // 只有在游戏进行中且轮到玩家时才能点击
+          cell.onclick = () => handleCakeClick(row, col);
+        } else if (gameState === 'choosing_poison' && !myPoisonPosition) {
+          // 在毒药选择阶段且还未选择毒药时才能点击
+          cell.onclick = () => handleCakeClick(row, col);
+        }
+
+        // 如果这个位置是玩家自己的毒药，标记为毒药（仅在选择后显示）
+        if (myPoisonPosition && myPoisonPosition[0] === row && myPoisonPosition[1] === col) {
+          cell.classList.add('your-poison');
+          // 添加毒药图标
+          if (!cell.classList.contains('selected')) {
+            cell.innerHTML = '☠️';
+          }
+        }
+
+        // 清除之前的图标
+        if (!cell.classList.contains('selected') && !cell.classList.contains('your-poison')) {
+          cell.innerHTML = '';
+          cell.innerHTML = '🍰';
+        }
+      });
+    }
+    // 处理蛋糕点击
+    function handleCakeClick(row, col) {
+      if (gameState === 'choosing_poison') {
+        sendMessage('choose_poison', { position: [row, col] });
+      } else if (gameState === 'playing') {
+        sendMessage('select_cake', { position: [row, col] });
+      }
+    }
+
+    function showAllPoisons(myPoison, opponentPoison) {
+      const cakeCells = document.querySelectorAll('.cake-cell');
+
+      cakeCells.forEach(cell => {
+        const row = parseInt(cell.dataset.row);
+        const col = parseInt(cell.dataset.col);
+
+        // 标记自己的毒药
+        if (myPoison && myPoison[0] === row && myPoison[1] === col) {
+          cell.classList.add('your-poison');
+          cell.innerHTML = '☠️';
+        }
+        // 标记对手的毒药
+        else if (opponentPoison && opponentPoison[0] === row && opponentPoison[1] === col) {
+          cell.classList.add('opponent-poison');
+          cell.innerHTML = '☠️';
+        }
+      });
+    }
+
+    // 显示游戏结束屏幕
+    function showGameOver(data) {
+      document.getElementById('cake-grid-container').style.display = 'none';
+      document.getElementById('game-over-screen').style.display = 'block';
+
+      const winnerMessage = document.getElementById('winner-message');
+      const resultDetails = document.getElementById('result-details');
+
+      // 显示毒药位置（游戏结束后显示所有毒药位置）
+      showAllPoisons(data.yourPoison, data.opponentPoison);
+
+      if (data.winner === playerRole) {
+        winnerMessage.innerHTML = '<i class="fas fa-crown"></i> 你赢了!';
+        resultDetails.innerHTML = `
+            <p>恭喜！对手选中了毒药！</p>
+            <p>你的毒药位置: [${data.yourPoison[0] + 1}, ${data.yourPoison[1] + 1}]</p>
+            <p>对手的毒药位置: [${data.opponentPoison[0] + 1}, ${data.opponentPoison[1] + 1}]</p>
+        `;
+      } else {
+        winnerMessage.innerHTML = '<i class="fas fa-skull-crossbones"></i> 你输了!';
+        if (data.isSelfPoison) {
+          resultDetails.innerHTML = `
+                <p>你不小心选中了自己的毒药！</p>
+                <p>你的毒药位置: [${data.yourPoison[0] + 1}, ${data.yourPoison[1] + 1}]</p>
+                <p>对手的毒药位置: [${data.opponentPoison[0] + 1}, ${data.opponentPoison[1] + 1}]</p>
+            `;
+        } else {
+          resultDetails.innerHTML = `
+                <p>你选中了对手的毒药！</p>
+                <p>你的毒药位置: [${data.yourPoison[0] + 1}, ${data.yourPoison[1] + 1}]</p>
+                <p>对手的毒药位置: [${data.opponentPoison[0] + 1}, ${data.opponentPoison[1] + 1}]</p>
+            `;
+        }
+      }
+    }
+    // 初始化事件监听器
+    function initEventListeners() {
+      // 主菜单按钮
+      document.getElementById('create-room-btn').addEventListener('click', () => {
+        showScreen('createRoom');
+      });
+
+      document.getElementById('join-room-btn').addEventListener('click', () => {
+        showScreen('joinRoom');
+      });
+
+      // 创建房间按钮
+      document.getElementById('create-room-confirm-btn').addEventListener('click', () => {
+        const roomIdInput = document.getElementById('room-id').value;
+        const gridSizeSelect = document.getElementById('grid-size').value;
+
+        if (!/^\d{4}$/.test(roomIdInput)) {
+          alert('房间号必须是4位数字');
+          return;
+        }
+
+        gridSize = parseInt(gridSizeSelect);
+        sendMessage('create_room', { roomId: roomIdInput });
+      });
+
+      // 加入房间按钮
+      document.getElementById('join-room-confirm-btn').addEventListener('click', () => {
+        const roomIdInput = document.getElementById('join-room-id').value;
+
+        if (!/^\d{4}$/.test(roomIdInput)) {
+          alert('房间号必须是4位数字');
+          return;
+        }
+
+        sendMessage('join_room', { roomId: roomIdInput });
+      });
+
+      // 开始游戏按钮（房主设置网格大小后开始游戏）
+      document.getElementById('start-game-btn').addEventListener('click', () => {
+        const gridSizeSelect = document.getElementById('grid-size-select').value;
+        gridSize = parseInt(gridSizeSelect);
+        sendMessage('set_cakes', { gridSize: gridSize });
+      });
+
+      // 返回按钮
+      document.getElementById('back-to-menu-btn').addEventListener('click', () => {
+        showScreen('mainMenu');
+      });
+
+      document.getElementById('back-to-menu-btn-2').addEventListener('click', () => {
+        showScreen('mainMenu');
+      });
+
+      document.getElementById('cancel-waiting-btn').addEventListener('click', () => {
+        // 发送离开房间的消息
+        if (ws && ws.readyState === WebSocket.OPEN && roomId) {
+          sendMessage('leave_room', {});
+        }
+
+        // 重置游戏状态
+        resetGameState();
+
+        // 返回主菜单
+        showScreen('mainMenu');
+      });
+
+      // 游戏按钮
+      document.getElementById('play-again-btn').addEventListener('click', () => {
+        sendMessage('restart_game', {});
+      });
+
+      document.getElementById('exit-game-btn').addEventListener('click', () => {
+        // 发送离开房间的消息
+        if (ws && ws.readyState === WebSocket.OPEN && roomId) {
+          sendMessage('leave_room', {});
+        }
+
+        // 重置游戏状态
+        resetGameState();
+
+        // 返回主菜单
+        showScreen('mainMenu');
+      });
+
+      // 返回主菜单按钮
+      const backButtons = document.querySelectorAll('.btn-secondary');
+      backButtons.forEach(button => {
+        if (button.id.includes('back-to-menu')) {
+          button.addEventListener('click', () => {
+            // 如果已经在房间中，先离开房间
+            if (ws && ws.readyState === WebSocket.OPEN && roomId) {
+              sendMessage('leave_room', {});
+            }
+
+            // 重置游戏状态
+            resetGameState();
+
+            // 返回主菜单
+            showScreen('mainMenu');
+          });
+        }
+      });
+
+
+
+    }
+
+    // 添加重置游戏状态的函数
+    function resetGameState() {
+      playerRole = '';
+      roomId = '';
+      gridSize = 5;
+      myPoisonPosition = null;
+      gameState = '';
+      isMyTurn = false;
+      selectedCakes = new Set();
+
+      // 重置所有输入字段
+      document.getElementById('room-id').value = '';
+      document.getElementById('join-room-id').value = '';
+      document.getElementById('grid-size').value = '5';
+      document.getElementById('grid-size-select').value = '5';
+
+      // 隐藏游戏相关元素
+      document.getElementById('cake-grid-container').style.display = 'none';
+      document.getElementById('game-over-screen').style.display = 'none';
+      document.getElementById('game-setup').style.display = 'none';
+
+      // 重置蛋糕网格
+      document.getElementById('cake-grid').innerHTML = '';
+
+      // 重置状态显示
+      document.getElementById('status-message').textContent = '游戏即将开始';
+      document.getElementById('turn-indicator').textContent = '';
+      document.getElementById('game-room-id').textContent = '----';
+      document.getElementById('player-role').textContent = '---';
+      document.getElementById('host-status').textContent = '等待中...';
+      document.getElementById('guest-status').textContent = '等待中...';
+
+      // 移除玩家卡片的特殊标记
+      document.getElementById('host-card').classList.remove('you');
+      document.getElementById('guest-card').classList.remove('you');
+    }
+
+    // 页面加载完成后初始化
+    document.addEventListener('DOMContentLoaded', () => {
+      connectWebSocket();
+      initEventListeners();
+    });
+  </script>
+</body>
+
+</html>

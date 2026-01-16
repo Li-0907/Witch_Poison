@@ -1,0 +1,336 @@
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+  color: #f1f1f1;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 20px;
+}
+
+.container {
+  width: 100%;
+  max-width: 900px;
+  margin: 0 auto;
+  padding: 20px;
+}
+
+header {
+  text-align: center;
+  margin-bottom: 30px;
+}
+
+h1 {
+  font-size: 3rem;
+  color: #9d4edd;
+  text-shadow: 0 0 10px rgba(157, 78, 221, 0.7);
+  margin-bottom: 10px;
+  font-family: 'Cinzel', serif;
+}
+
+.subtitle {
+  font-size: 1.2rem;
+  color: #c77dff;
+  margin-bottom: 30px;
+}
+
+.game-area {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  background-color: rgba(0, 0, 0, 0.5);
+  border-radius: 15px;
+  padding: 25px;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+  margin-bottom: 30px;
+}
+
+.screen {
+  width: 100%;
+  display: none;
+}
+
+.screen.active {
+  display: block;
+}
+
+.form-group {
+  margin-bottom: 20px;
+}
+
+label {
+  display: block;
+  margin-bottom: 8px;
+  font-weight: bold;
+  color: #c77dff;
+}
+
+input, select, button {
+  width: 100%;
+  padding: 12px 15px;
+  border-radius: 8px;
+  border: none;
+  font-size: 1rem;
+}
+
+input, select {
+  background-color: rgba(255, 255, 255, 0.1);
+  color: white;
+  border: 1px solid #9d4edd;
+}
+
+input:focus, select:focus {
+  outline: none;
+  border-color: #c77dff;
+  box-shadow: 0 0 5px rgba(199, 125, 255, 0.5);
+}
+
+button {
+  background: linear-gradient(90deg, #9d4edd, #c77dff);
+  color: white;
+  font-weight: bold;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  margin-top: 10px;
+}
+
+button:hover {
+  background: linear-gradient(90deg, #c77dff, #9d4edd);
+  transform: translateY(-2px);
+  box-shadow: 0 5px 15px rgba(157, 78, 221, 0.4);
+}
+
+button:disabled {
+  background: #555;
+  cursor: not-allowed;
+  transform: none;
+  box-shadow: none;
+}
+
+.room-info {
+  background-color: rgba(157, 78, 221, 0.2);
+  padding: 15px;
+  border-radius: 10px;
+  margin-bottom: 20px;
+  text-align: center;
+}
+
+.cake-grid {
+  display: grid;
+  grid-gap: 10px;
+  margin: 20px auto;
+  justify-content: center;
+}
+
+.cake-cell {
+  width: 70px;
+  height: 70px;
+  background-color: #ff9ecc;
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+  position: relative;
+  overflow: hidden;
+}
+
+.cake-cell:hover {
+  transform: scale(1.05);
+  box-shadow: 0 6px 12px rgba(0, 0, 0, 0.3);
+}
+
+.cake-cell.selected {
+  background-color: #7b2cbf;
+  cursor: default;
+  transform: scale(0.95);
+}
+
+.cake-cell.poison {
+  background-color: #ff6b6b;
+}
+
+.cake-cell.your-poison {
+  background-color: rgba(255, 158, 0, 0.7);
+  border: 3px solid #ff9e00;
+}
+
+.cake-cell.your-poison::before {
+  content: '☠️';
+  font-size: 30px;
+}
+
+.cake-cell.opponent-poison {
+  background-color: rgba(6, 214, 160, 0.7);
+  border: 3px solid #06d6a0;
+}
+
+.cake-cell.opponent-poison::before {
+  content: '☠️';
+  font-size: 30px;
+}
+
+.cake-cell::before {
+  content: '🍰';
+  font-size: 30px;
+}
+
+.cake-cell.selected::before {
+  content: '✓';
+  font-size: 30px;
+  color: white;
+}
+
+.cake-cell.poison::before {
+  content: '☠️';
+}
+
+.game-status {
+  text-align: center;
+  margin-bottom: 20px;
+  padding: 15px;
+  border-radius: 10px;
+  background-color: rgba(255, 255, 255, 0.1);
+}
+
+.status-message {
+  font-size: 1.5rem;
+  margin-bottom: 10px;
+  color: #c77dff;
+}
+
+.turn-indicator {
+  font-size: 1.2rem;
+  font-weight: bold;
+  color: #ff9e00;
+  animation: pulse 1.5s infinite;
+}
+
+@keyframes pulse {
+  0% { opacity: 0.7; }
+  50% { opacity: 1; }
+  100% { opacity: 0.7; }
+}
+
+.players-info {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 20px;
+}
+
+.player-card {
+  flex: 1;
+  padding: 15px;
+  border-radius: 10px;
+  text-align: center;
+  margin: 0 10px;
+  background-color: rgba(255, 255, 255, 0.05);
+}
+
+.player-card.host {
+  border-top: 5px solid #9d4edd;
+}
+
+.player-card.guest {
+  border-top: 5px solid #4cc9f0;
+}
+
+.player-card.you {
+  background-color: rgba(157, 78, 221, 0.2);
+}
+
+.player-name {
+  font-weight: bold;
+  font-size: 1.2rem;
+  margin-bottom: 10px;
+}
+
+.player-status {
+  font-size: 0.9rem;
+  color: #aaa;
+}
+
+.game-over {
+  text-align: center;
+  padding: 30px;
+  background-color: rgba(0, 0, 0, 0.7);
+  border-radius: 15px;
+  margin-top: 20px;
+}
+
+.winner {
+  font-size: 2.5rem;
+  color: #ffd166;
+  margin-bottom: 20px;
+  text-shadow: 0 0 10px rgba(255, 209, 102, 0.7);
+}
+
+.result-details {
+  font-size: 1.1rem;
+  margin-bottom: 30px;
+  line-height: 1.6;
+}
+
+.instructions {
+  background-color: rgba(255, 255, 255, 0.05);
+  padding: 20px;
+  border-radius: 10px;
+  margin-top: 20px;
+  border-left: 5px solid #9d4edd;
+}
+
+.instructions h3 {
+  color: #c77dff;
+  margin-bottom: 10px;
+}
+
+.instructions ul {
+  padding-left: 20px;
+  line-height: 1.6;
+}
+
+.instructions li {
+  margin-bottom: 8px;
+}
+
+@media (max-width: 768px) {
+  .cake-cell {
+      width: 50px;
+      height: 50px;
+  }
+  
+  .cake-cell::before {
+      font-size: 20px;
+  }
+  
+  h1 {
+      font-size: 2.2rem;
+  }
+  
+  .players-info {
+      flex-direction: column;
+  }
+  
+  .player-card {
+      margin-bottom: 15px;
+  }
+}
+
+/* 游戏结束后显示的毒药标记 */
+.cake-cell.revealed-poison {
+  animation: poison-pulse 1s infinite alternate;
+}
+
+@keyframes poison-pulse {
+  from { transform: scale(1); }
+  to { transform: scale(1.1); }
+}
