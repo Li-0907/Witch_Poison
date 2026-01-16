@@ -57,6 +57,14 @@ const PlayerRole = {
   GUEST: 'guest'
 };
 
+const WHO_GO_FIRST = {
+  RANDOM: 'random',
+  WIN_FIRST: 'win',
+  LOSE_FIRST: 'lose',
+  HOST: 'host',
+  GUEST: 'guest'
+}
+
 // 处理WebSocket连接
 wss.on('connection', (ws) => {
   let player = {
@@ -117,7 +125,7 @@ function handleMessage(player, data) {
       handleJoinRoom(player, data.roomId);
       break;
     case 'set_cakes':
-      handleSetCakes(player, data.gridSize);
+      handleSetCakes(player, data.gridSize, data.who_go_first);
       break;
     case 'choose_poison':
       handleChoosePoison(player, data.position);
@@ -286,7 +294,7 @@ function handleJoinRoom(player, roomId) {
 }
 
 // 设置蛋糕网格大小
-function handleSetCakes(player, gridSize) {
+function handleSetCakes(player, gridSize, who_go_first) {
   const room = rooms.get(player.roomId);
   if (!room || player.role !== PlayerRole.HOST) return;
 
@@ -316,6 +324,15 @@ function handleSetCakes(player, gridSize) {
       message: '网格大小必须在3到8之间'
     }));
     return;
+  }
+
+  if (!Object.values(WHO_GO_FIRST).includes(who_go_first)) {
+    player.ws.send(JSON.stringify({
+      type: 'error',
+      message: '请选择先手设置',
+    }));
+  } else {
+    room.who_go_first = who_go_first;
   }
 
   room.gridSize = size;
@@ -377,13 +394,22 @@ function handleChoosePoison(player, position) {
     allPoisonsChosen: false
   }));
 
+  // 通知对方玩家已选择毒药（但不同步毒药位置）
+  const otherPlayer = room.players.find(p => p !== player);
+  if (otherPlayer && otherPlayer.ws.readyState === WebSocket.OPEN) {
+    otherPlayer.ws.send(JSON.stringify({
+      type: 'opponent_poison_chosen',
+      opponentRole: player.role
+    }));
+  }
+
   // 检查是否双方都选择了毒药
   const bothChosen = room.players.every(p => p.poisonPosition !== null);
 
   if (bothChosen) {
     room.state = GameState.PLAYING;
     // 随机决定谁先开始游戏
-    room.currentTurn = Math.random() > 0.5 ? PlayerRole.HOST : PlayerRole.GUEST;
+    room.currentTurn = handleWhoGoFirst(room, room.who_go_first);
 
     console.log(`双方都选择了毒药，游戏开始！先手玩家: ${room.currentTurn}`);
 
@@ -398,16 +424,35 @@ function handleChoosePoison(player, position) {
         currentPlayer: room.currentTurn
       }));
     });
-  } else {
-    // 通知对方玩家已选择毒药（但不同步毒药位置）
-    const otherPlayer = room.players.find(p => p !== player);
-    if (otherPlayer && otherPlayer.ws.readyState === WebSocket.OPEN) {
-      otherPlayer.ws.send(JSON.stringify({
-        type: 'opponent_poison_chosen',
-        opponentRole: player.role
-      }));
-    }
   }
+}
+
+function handleWhoGoFirst(room, who_go_first) {
+  let player = null;
+  switch (who_go_first) {
+    case WHO_GO_FIRST.WIN_FIRST:  // 赢者先
+      if (room.lastWinner) {
+        player = room.lastWinner;
+      } else {
+        player = handleWhoGoFirst(room, WHO_GO_FIRST.RANDOM);
+      }
+      break;
+    case WHO_GO_FIRST.LOSE_FIRST: // 输者先
+      if (room.lastWinner) {
+        player = room.lastWinner === PlayerRole.HOST ? PlayerRole.GUEST : PlayerRole.HOST;
+      } else {
+        player = handleWhoGoFirst(room, WHO_GO_FIRST.RANDOM);
+      }
+      break;
+    case WHO_GO_FIRST.HOST: // 房主先
+      player = PlayerRole.HOST;
+    case WHO_GO_FIRST.GUEST:  // 玩家2先
+      player = PlayerRole.GUEST;
+    default:  // 随机
+      player = Math.random() > 0.5 ? PlayerRole.HOST : PlayerRole.GUEST;
+      break;
+  }
+  return player;
 }
 
 // 选择蛋糕
@@ -481,13 +526,14 @@ function handleSelectCake(player, position) {
 
   if (gameOver) {
     room.state = GameState.FINISHED;
-
+    room.lastWinner = winner;
     // 通知双方玩家游戏结束
     room.players.forEach(p => {
       p.ws.send(JSON.stringify({
         type: 'game_over',
         winner,
         loser,
+        lastWinner: room.lastWinner,
         selectedPosition: position,
         poisonOwner,
         isSelfPoison: p.role === player.role ? isSelfPoison : !isSelfPoison,

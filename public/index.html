@@ -8,6 +8,8 @@
   <link rel="stylesheet" href="style.css">
   <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <link rel="stylesheet" type="text/css" href="https://cdn.jsdelivr.net/npm/toastify-js/src/toastify.min.css">
+  <script type="text/javascript" src="https://cdn.jsdelivr.net/npm/toastify-js"></script>
 </head>
 
 <body>
@@ -18,6 +20,7 @@
     </header>
 
     <div class="game-area">
+      <div id="sounds" class="sounds"><i class="fas fa-volume-xmark"></i></div>
       <!-- 主菜单屏幕 -->
       <div id="main-menu" class="screen active">
         <div class="instructions">
@@ -30,20 +33,6 @@
                 <li>其他玩家通过4位房间号加入</li>
               </ul>
             </li>
-            <li><strong>毒药选择阶段</strong>:
-              <ul>
-                <li>双方玩家各自秘密选择一个蛋糕作为自己的毒药</li>
-                <li>毒药位置对对方保密</li>
-              </ul>
-            </li>
-            <li><strong>游戏阶段</strong>:
-              <ul>
-                <li>玩家轮流选择蛋糕</li>
-                <li><strong>重要规则</strong>: 选中任意毒药（自己的或对方的）立即输掉游戏</li>
-                <li>最后存活的玩家获胜</li>
-              </ul>
-            </li>
-            <li><strong>策略提示</strong>: 尽量记住自己毒药的位置，同时猜测对方毒药可能的位置</li>
           </ul>
         </div>
 
@@ -70,7 +59,7 @@
           <input type="text" id="room-id" maxlength="4" placeholder="例如: 1234">
         </div>
 
-        <div class="form-group">
+        <!-- <div class="form-group">
           <label for="grid-size">蛋糕网格大小 (N×N)</label>
           <select id="grid-size">
             <option value="4">4×4 (16个蛋糕)</option>
@@ -79,7 +68,7 @@
             <option value="7">7×7 (49个蛋糕)</option>
             <option value="8">8×8 (64个蛋糕)</option>
           </select>
-        </div>
+        </div> -->
 
         <div class="form-group">
           <button id="create-room-confirm-btn" class="btn-primary">
@@ -160,6 +149,16 @@
               <option value="8">8×8 (64个蛋糕)</option>
             </select>
           </div>
+          <div class="form-group">
+            <label for="who-go-first-select">先手设置</label>
+            <select id="who-go-first-select">
+              <option value="random">随机</option>
+              <option value="win" selected>赢者先</option>
+              <option value="lose">输者先</option>
+              <option value="host">房主先</option>
+              <option value="guest">玩家2先</option>
+            </select>
+          </div>
           <button id="start-game-btn" class="btn-primary">
             <i class="fas fa-play"></i> 开始游戏
           </button>
@@ -202,6 +201,7 @@
     let myPoisonPosition = null;
     let gameState = '';
     let isMyTurn = false;
+    let soundsEnabled = localStorage.getItem('soundsEnabled') === 'false' ? false : true;
     let selectedCakes = new Set();
 
     // DOM元素
@@ -239,7 +239,18 @@
 
       ws.onclose = () => {
         console.log('与服务器断开连接');
-        alert('与服务器断开连接，请刷新页面重试');
+        Toastify({
+          text: "与服务器断开连接，请刷新页面重试",
+          duration: 3000,
+          close: true,
+          gravity: "top",
+          position: "center",
+          stopOnFocusLoss: true,
+          style: {
+            background: "linear-gradient(to right, #ff4757, #ff4757)",
+          },
+        }).showToast();
+        // alert('与服务器断开连接，请刷新页面重试');
       };
 
       ws.onerror = (error) => {
@@ -266,15 +277,29 @@
           playerRole = data.role;
           roomId = data.roomId;
           gameState = data.state;
+          // 播放玩家加入音效
+          playSound('player-join');
           updateGameScreen();
           showScreen('game');
           break;
 
         case 'error':
-          alert('错误: ' + data.message);
+          Toastify({
+            text: '错误: ' + data.message,
+            duration: 3000,
+            close: true,
+            gravity: "top",
+            position: "center",
+            stopOnFocusLoss: true,
+            style: {
+              background: "linear-gradient(to right, #ff4757, #ff4757)",
+            },
+          }).showToast();
+          // alert('错误: ' + data.message);
           break;
 
         case 'game_started':
+          playSound('game_start');
           gridSize = data.gridSize;
           gameState = data.state;
           isMyTurn = data.isTurn;
@@ -293,6 +318,14 @@
 
         case 'opponent_poison_chosen':
           // 对手选择了毒药
+          playSound('opponent_poison_chosen');
+          Toastify({
+            text: "对手选择了毒药",
+            duration: 3000,
+            gravity: "top",
+            position: "center",
+            stopOnFocusLoss: true,
+          }).showToast();
           gameState = 'choosing_poison';
           updateGameScreen();
           break;
@@ -309,6 +342,9 @@
         case 'cake_selected':
           selectedCakes = new Set(data.selectedCakes);
           isMyTurn = data.isTurn;
+          if (isMyTurn) {
+            playSound('cake_selected');
+          }
           updateCakeGrid();
           updateGameScreen();
           break;
@@ -319,6 +355,7 @@
           break;
 
         case 'game_restarted':
+          playSound('game_start');
           gridSize = data.gridSize;
           gameState = data.state;
           isMyTurn = data.isTurn;
@@ -329,7 +366,18 @@
           break;
 
         case 'opponent_disconnected':
-          alert('对手已断开连接');
+          playSound('disconnect');
+          Toastify({
+            text: "对手已断开连接",
+            duration: 3000,
+            close: true,
+            gravity: "top",
+            position: "center",
+            stopOnFocusLoss: true,
+            style: {
+              background: "linear-gradient(to right, #ff4757, #ff4757)",
+            },
+          }).showToast();
           if (ws && ws.readyState === WebSocket.OPEN && roomId) {
             sendMessage('leave_room', {});
           }
@@ -350,7 +398,18 @@
         const message = { type, ...data };
         ws.send(JSON.stringify(message));
       } else {
-        alert('无法连接到服务器，请刷新页面重试');
+        Toastify({
+          text: "无法连接到服务器，请刷新页面重试",
+          duration: 3000,
+          close: true,
+          gravity: "top",
+          position: "center",
+          stopOnFocusLoss: true,
+          style: {
+            background: "linear-gradient(to right, #ff4757, #ff4757)",
+          },
+        }).showToast();
+        // alert('无法连接到服务器，请刷新页面重试');
       }
     }
 
@@ -371,6 +430,7 @@
         guestCard.classList.remove('you');
         hostStatus.textContent = '你';
         guestStatus.textContent = gameState === 'waiting' ? '等待中...' : '已加入';
+        guestCard.style.borderColor = gameState === 'waiting' ? 'red' : 'green';
 
         // 如果是房主且游戏状态为等待，显示游戏设置
         if (gameState === 'waiting' || gameState === 'setting_cakes') {
@@ -421,6 +481,12 @@
         gridContainer.style.display = 'none';
         turnIndicator.textContent = '';
       }
+    }
+
+    function playSound(soundName) {
+      if (!soundsEnabled) return;
+      const audio = new Audio(`./sounds/${soundName}.mp3`);
+      audio.play();
     }
 
     // 重置游戏屏幕
@@ -551,6 +617,7 @@
             <p>你的毒药位置: [${data.yourPoison[0] + 1}, ${data.yourPoison[1] + 1}]</p>
             <p>对手的毒药位置: [${data.opponentPoison[0] + 1}, ${data.opponentPoison[1] + 1}]</p>
         `;
+        playSound('win');
       } else {
         winnerMessage.innerHTML = '<i class="fas fa-skull-crossbones"></i> 你输了!';
         if (data.isSelfPoison) {
@@ -566,8 +633,10 @@
                 <p>对手的毒药位置: [${data.opponentPoison[0] + 1}, ${data.opponentPoison[1] + 1}]</p>
             `;
         }
+        playSound('lose');
       }
     }
+
     // 初始化事件监听器
     function initEventListeners() {
       // 主菜单按钮
@@ -582,14 +651,25 @@
       // 创建房间按钮
       document.getElementById('create-room-confirm-btn').addEventListener('click', () => {
         const roomIdInput = document.getElementById('room-id').value;
-        const gridSizeSelect = document.getElementById('grid-size').value;
+        // const gridSizeSelect = document.getElementById('grid-size').value;
 
         if (!/^\d{4}$/.test(roomIdInput)) {
-          alert('房间号必须是4位数字');
+          Toastify({
+            text: "房间号必须是4位数字",
+            duration: 3000,
+            close: true,
+            gravity: "top",
+            position: "center",
+            stopOnFocusLoss: true,
+            style: {
+              background: "linear-gradient(to right, #ff4757, #ff4757)",
+            },
+          }).showToast();
+          // alert('房间号必须是4位数字');
           return;
         }
 
-        gridSize = parseInt(gridSizeSelect);
+        // gridSize = parseInt(gridSizeSelect);
         sendMessage('create_room', { roomId: roomIdInput });
       });
 
@@ -598,7 +678,18 @@
         const roomIdInput = document.getElementById('join-room-id').value;
 
         if (!/^\d{4}$/.test(roomIdInput)) {
-          alert('房间号必须是4位数字');
+          Toastify({
+            text: "房间号必须是4位数字",
+            duration: 3000,
+            close: true,
+            gravity: "top",
+            position: "center",
+            stopOnFocusLoss: true,
+            style: {
+              background: "linear-gradient(to right, #ff4757, #ff4757)",
+            },
+          }).showToast();
+          // alert('房间号必须是4位数字');
           return;
         }
 
@@ -609,7 +700,8 @@
       document.getElementById('start-game-btn').addEventListener('click', () => {
         const gridSizeSelect = document.getElementById('grid-size-select').value;
         gridSize = parseInt(gridSizeSelect);
-        sendMessage('set_cakes', { gridSize: gridSize });
+        const who_go_first = document.getElementById('who-go-first-select').value;
+        sendMessage('set_cakes', { gridSize: gridSize, who_go_first: who_go_first });
       });
 
       // 返回按钮
@@ -671,7 +763,18 @@
         }
       });
 
-
+      document.getElementById('sounds').addEventListener('click', () => {
+        document.querySelector('#sounds .fas').classList.remove('fa-volume-up');
+        document.querySelector('#sounds .fas').classList.remove('fa-volume-xmark');
+        if (soundsEnabled) {
+          document.querySelector('#sounds .fas').classList.add('fa-volume-xmark');
+          soundsEnabled = false;
+        } else {
+          document.querySelector('#sounds .fas').classList.add('fa-volume-up');
+          soundsEnabled = true;
+        }
+        localStorage.setItem('soundsEnabled', soundsEnabled);
+      });
 
     }
 
@@ -688,8 +791,6 @@
       // 重置所有输入字段
       document.getElementById('room-id').value = '';
       document.getElementById('join-room-id').value = '';
-      document.getElementById('grid-size').value = '5';
-      document.getElementById('grid-size-select').value = '5';
 
       // 隐藏游戏相关元素
       document.getElementById('cake-grid-container').style.display = 'none';
@@ -716,6 +817,13 @@
     document.addEventListener('DOMContentLoaded', () => {
       connectWebSocket();
       initEventListeners();
+      document.querySelector('#sounds .fas').classList.remove('fa-volume-up');
+      document.querySelector('#sounds .fas').classList.remove('fa-volume-xmark');
+      if (soundsEnabled) {
+        document.querySelector('#sounds .fas').classList.add('fa-volume-up');
+      } else {
+        document.querySelector('#sounds .fas').classList.add('fa-volume-xmark');
+      }
     });
   </script>
 </body>

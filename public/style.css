@@ -19,7 +19,7 @@ body {
   width: 100%;
   max-width: 900px;
   margin: 0 auto;
-  padding: 20px;
+  padding: 20px 0px;
 }
 
 header {
@@ -47,9 +47,10 @@ h1 {
   align-items: center;
   background-color: rgba(0, 0, 0, 0.5);
   border-radius: 15px;
-  padding: 25px;
+  padding: 25px 5px;
   box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
   margin-bottom: 30px;
+  position: relative;
 }
 
 .screen {
@@ -72,6 +73,13 @@ label {
   color: #c77dff;
 }
 
+.sounds {
+  position: absolute;
+  right: 10px;
+  top: 8px;
+  color: rgba(157, 78, 221, 0.7);
+}
+
 input, select, button {
   width: 100%;
   padding: 12px 15px;
@@ -82,7 +90,7 @@ input, select, button {
 
 input, select {
   background-color: rgba(255, 255, 255, 0.1);
-  color: white;
+  color: #aaa;
   border: 1px solid #9d4edd;
 }
 
