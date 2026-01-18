@@ -139,6 +139,9 @@ function handleMessage(player, data) {
     case 'leave_room':
       handleLeaveRoom(player);
       break;
+    case 'request_restart_game':
+      handleRequestRestartGame(player);
+      break;
   }
 }
 
@@ -431,15 +434,15 @@ function handleWhoGoFirst(room, who_go_first) {
   let player = null;
   switch (who_go_first) {
     case WHO_GO_FIRST.WIN_FIRST:  // 赢者先
-      if (room.lastWinner) {
-        player = room.lastWinner;
+      if (room.lastWinners && room.lastWinners.length > 0) {
+        player = room.lastWinners[room.lastWinners.length - 1];
       } else {
         player = handleWhoGoFirst(room, WHO_GO_FIRST.RANDOM);
       }
       break;
     case WHO_GO_FIRST.LOSE_FIRST: // 输者先
-      if (room.lastWinner) {
-        player = room.lastWinner === PlayerRole.HOST ? PlayerRole.GUEST : PlayerRole.HOST;
+      if (room.lastWinners && room.lastWinners.length > 0) {
+        player = room.lastWinners[room.lastWinners.length - 1] === PlayerRole.HOST ? PlayerRole.GUEST : PlayerRole.HOST;
       } else {
         player = handleWhoGoFirst(room, WHO_GO_FIRST.RANDOM);
       }
@@ -526,14 +529,14 @@ function handleSelectCake(player, position) {
 
   if (gameOver) {
     room.state = GameState.FINISHED;
-    room.lastWinner = winner;
+    room.lastWinners = room.lastWinners ? [...room.lastWinners, winner] : [winner];
     // 通知双方玩家游戏结束
     room.players.forEach(p => {
       p.ws.send(JSON.stringify({
         type: 'game_over',
         winner,
         loser,
-        lastWinner: room.lastWinner,
+        lastWinners: room.lastWinners,
         selectedPosition: position,
         poisonOwner,
         isSelfPoison: p.role === player.role ? isSelfPoison : !isSelfPoison,
@@ -574,8 +577,12 @@ function handleRestartGame(player) {
   if (player.role !== PlayerRole.HOST) {
     player.ws.send(JSON.stringify({
       type: 'error',
-      message: '只有房主可以重新开始游戏'
+      message: '您不是房主，已向房主发出申请'
     }));
+    room.players.find(p => p.role === PlayerRole.HOST).ws.send(JSON.stringify({
+      type: 'request_restart_game',
+      data: { requester: player.role }
+    }))
     return;
   }
 

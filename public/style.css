@@ -47,7 +47,7 @@ h1 {
   align-items: center;
   background-color: rgba(0, 0, 0, 0.5);
   border-radius: 15px;
-  padding: 25px 5px;
+  padding: 30px 5px;
   box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
   margin-bottom: 30px;
   position: relative;
@@ -135,6 +135,7 @@ button:disabled {
   grid-gap: 10px;
   margin: 20px auto;
   justify-content: center;
+  place-items: center;
 }
 
 .cake-cell {
@@ -242,6 +243,7 @@ button:disabled {
   text-align: center;
   margin: 0 10px;
   background-color: rgba(255, 255, 255, 0.05);
+  position: relative;
 }
 
 .player-card.host {
@@ -254,6 +256,13 @@ button:disabled {
 
 .player-card.you {
   background-color: rgba(157, 78, 221, 0.2);
+}
+
+.player-card .score {
+  position: absolute;
+  right: 5px;
+  color: #ccc;
+  top: calc(50% - 1em);
 }
 
 .player-name {
@@ -338,7 +347,21 @@ button:disabled {
   animation: poison-pulse 1s infinite alternate;
 }
 
+.cake-grid .your-select-cake {
+  background-color: #407a00;
+}
+
 @keyframes poison-pulse {
   from { transform: scale(1); }
   to { transform: scale(1.1); }
+}
+
+input::-webkit-outer-spin-button,
+input::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+
+input[type="number"] {
+  -moz-appearance: textfield;
 }

@@ -56,7 +56,7 @@
 
         <div class="form-group">
           <label for="room-id">房间号 (4位数字)</label>
-          <input type="text" id="room-id" maxlength="4" placeholder="例如: 1234">
+          <input type="number" id="room-id" maxlength="4" placeholder="例如: 1234">
         </div>
 
         <!-- <div class="form-group">
@@ -86,7 +86,7 @@
 
         <div class="form-group">
           <label for="join-room-id">输入房间号</label>
-          <input type="text" id="join-room-id" maxlength="4" placeholder="请输入4位数字">
+          <input type="number" id="join-room-id" maxlength="4" placeholder="请输入4位数字">
         </div>
 
         <div class="form-group">
@@ -169,11 +169,6 @@
           <div id="turn-indicator" class="turn-indicator"></div>
         </div>
 
-        <div id="cake-grid-container" style="display: none;">
-          <div id="cake-grid" class="cake-grid"></div>
-          <p id="grid-instruction">点击选择一个蛋糕</p>
-        </div>
-
         <div id="game-over-screen" class="game-over" style="display: none;">
           <div id="winner-message" class="winner">游戏结束!</div>
           <div id="result-details" class="result-details"></div>
@@ -186,6 +181,12 @@
             </button>
           </div>
         </div>
+
+        <div id="cake-grid-container" style="display: none;">
+          <div id="cake-grid" class="cake-grid"></div>
+        </div>
+
+        
       </div>
 
 
@@ -203,6 +204,7 @@
     let isMyTurn = false;
     let soundsEnabled = localStorage.getItem('soundsEnabled') === 'false' ? false : true;
     let selectedCakes = new Set();
+    let mySelectedCakes = new Set();
 
     // DOM元素
     const screens = {
@@ -242,7 +244,6 @@
         Toastify({
           text: "与服务器断开连接，请刷新页面重试",
           duration: 3000,
-          close: true,
           gravity: "top",
           position: "center",
           stopOnFocusLoss: true,
@@ -287,7 +288,6 @@
           Toastify({
             text: '错误: ' + data.message,
             duration: 3000,
-            close: true,
             gravity: "top",
             position: "center",
             stopOnFocusLoss: true,
@@ -345,6 +345,9 @@
           if (isMyTurn) {
             playSound('cake_selected');
           }
+          if (!isMyTurn) {
+            updateMySelectCake(data.selectedPosition.join(','));
+          }
           updateCakeGrid();
           updateGameScreen();
           break;
@@ -352,6 +355,7 @@
         case 'game_over':
           gameState = 'finished';
           showGameOver(data);
+          showScore(data.lastWinners);
           break;
 
         case 'game_restarted':
@@ -370,7 +374,6 @@
           Toastify({
             text: "对手已断开连接",
             duration: 3000,
-            close: true,
             gravity: "top",
             position: "center",
             stopOnFocusLoss: true,
@@ -389,6 +392,8 @@
           // 成功离开房间，不需要额外操作
           console.log('已离开房间');
           break;
+        case 'request_restart_game':
+          handleRequestRestartGame(data);
       }
     }
 
@@ -401,7 +406,6 @@
         Toastify({
           text: "无法连接到服务器，请刷新页面重试",
           duration: 3000,
-          close: true,
           gravity: "top",
           position: "center",
           stopOnFocusLoss: true,
@@ -411,6 +415,36 @@
         }).showToast();
         // alert('无法连接到服务器，请刷新页面重试');
       }
+    }
+
+    function updateMySelectCake(position) {
+      if (!mySelectedCakes.has(position)) {
+        mySelectedCakes.add(position);
+      }
+    }
+
+    function showScore(lastWinners) {
+      const hostWins = lastWinners.reduce((pre, cur) => cur === 'host' ? pre + 1: pre, 0);
+      const guestWin = lastWinners.length - hostWins;
+      const hostCard = document.getElementById('host-card');
+      let hostScore = hostCard.querySelector('.score');
+      if (!hostScore) {
+        hostScore = document.createElement('div');
+        hostScore.classList.add('score');
+      }
+      hostScore.innerHTML = `得分: ${hostWins}`;
+
+      const guestCard = document.getElementById('guest-card');
+      let guestScore = guestCard.querySelector('.score');
+      if (!guestScore) {
+        guestScore = document.createElement('div');
+        guestScore.classList.add('score');
+      }
+      guestScore.innerHTML = `得分: ${guestWin}`;
+
+      hostCard.appendChild(hostScore);
+      guestCard.appendChild(guestScore);
+      
     }
 
     // 更新游戏屏幕
@@ -483,11 +517,43 @@
       }
     }
 
+    // 预加载和缓存音频对象
+    const audioCache = new Map();
+
+    // 预加载常用音效
+    function preloadSounds(soundNames) {
+      soundNames.forEach(name => {
+        if (!audioCache.has(name)) {
+          const audio = new Audio(`./sounds/${name}.mp3`);
+          audio.load(); // 预加载
+          audioCache.set(name, audio);
+        }
+      });
+    }
+
+    // 播放音效
     function playSound(soundName) {
       if (!soundsEnabled) return;
-      const audio = new Audio(`./sounds/${soundName}.mp3`);
-      audio.play();
+
+      let audio = audioCache.get(soundName);
+
+      if (!audio) {
+        // 缓存中没有，创建并缓存
+        audio = new Audio(`./sounds/${soundName}.mp3`);
+        audioCache.set(soundName, audio);
+      } else {
+        // 重置播放位置
+        audio.currentTime = 0;
+      }
+
+      // 处理播放失败的情况
+      audio.play().catch(error => {
+        console.warn(`Failed to play sound ${soundName}:`, error);
+      });
     }
+
+    // 在游戏/应用初始化时预加载常用音效
+    preloadSounds(['player-join', 'disconnect', 'game_start', 'cake_selected', 'opponent_poison_chosen', 'win', 'lose']);
 
     // 重置游戏屏幕
     function resetGameScreen() {
@@ -546,6 +612,9 @@
         if (selectedCakes.has(posKey)) {
           cell.classList.add('selected');
           cell.onclick = null;
+          if (mySelectedCakes.has(posKey)) {
+            cell.classList.add('your-select-cake');
+          }
         } else if (gameState === 'playing' && isMyTurn) {
           // 只有在游戏进行中且轮到玩家时才能点击
           cell.onclick = () => handleCakeClick(row, col);
@@ -601,7 +670,7 @@
 
     // 显示游戏结束屏幕
     function showGameOver(data) {
-      document.getElementById('cake-grid-container').style.display = 'none';
+      // document.getElementById('cake-grid-container').style.display = 'none';
       document.getElementById('game-over-screen').style.display = 'block';
 
       const winnerMessage = document.getElementById('winner-message');
@@ -657,7 +726,6 @@
           Toastify({
             text: "房间号必须是4位数字",
             duration: 3000,
-            close: true,
             gravity: "top",
             position: "center",
             stopOnFocusLoss: true,
@@ -681,7 +749,6 @@
           Toastify({
             text: "房间号必须是4位数字",
             duration: 3000,
-            close: true,
             gravity: "top",
             position: "center",
             stopOnFocusLoss: true,
@@ -778,6 +845,17 @@
 
     }
 
+    function handleRequestRestartGame(data) {
+      console.log(data)
+      Toastify({
+        text: "对方玩家请求重新开始游戏",
+        duration: 3000,
+        gravity: "top",
+        position: "center",
+        stopOnFocusLoss: true,
+      }).showToast();
+    }
+
     // 添加重置游戏状态的函数
     function resetGameState() {
       playerRole = '';
@@ -810,7 +888,9 @@
 
       // 移除玩家卡片的特殊标记
       document.getElementById('host-card').classList.remove('you');
+      document.getElementById('host-card').querySelector('.score')?.remove();
       document.getElementById('guest-card').classList.remove('you');
+      document.getElementById('guest-card').querySelector('.score')?.remove();
     }
 
     // 页面加载完成后初始化
