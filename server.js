@@ -548,7 +548,7 @@ function handleSelectCake(player, position) {
       }));
     });
 
-    console.log(`游戏结束! 获胜者: ${winner}, 输家: ${loser}, 毒药所有者: ${poisonOwner}`);
+    console.log(`游戏结束! 获胜者: ${winner}, 输家: ${loser}, 毒药所有者: ${poisonOwner}`, room.lastWinners.toString());
   } else {
     // 切换回合
     room.currentTurn = room.currentTurn === PlayerRole.HOST ? PlayerRole.GUEST : PlayerRole.HOST;
@@ -583,6 +583,7 @@ function handleRestartGame(player) {
       type: 'request_restart_game',
       data: { requester: player.role }
     }))
+    console.log(`玩家 ${player.role} 请求重新开始游戏`);
     return;
   }
 
