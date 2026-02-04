@@ -557,6 +557,7 @@
 
     // 重置游戏屏幕
     function resetGameScreen() {
+      mySelectedCakes.clear();
       document.getElementById('game-over-screen').style.display = 'none';
       document.getElementById('cake-grid-container').style.display = 'block';
       updateGameScreen();
@@ -704,6 +705,7 @@
         }
         playSound('lose');
       }
+      mySelectedCakes.clear();
     }
 
     // 初始化事件监听器
@@ -865,6 +867,7 @@
       gameState = '';
       isMyTurn = false;
       selectedCakes = new Set();
+      mySelectedCakes.clear();
 
       // 重置所有输入字段
       document.getElementById('room-id').value = '';

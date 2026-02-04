@@ -139,9 +139,6 @@ function handleMessage(player, data) {
     case 'leave_room':
       handleLeaveRoom(player);
       break;
-    case 'request_restart_game':
-      handleRequestRestartGame(player);
-      break;
   }
 }
 
@@ -548,7 +545,7 @@ function handleSelectCake(player, position) {
       }));
     });
 
-    console.log(`游戏结束! 获胜者: ${winner}, 输家: ${loser}, 毒药所有者: ${poisonOwner}`, room.lastWinners.toString());
+    console.log(`游戏结束! 获胜者: ${winner}, 输家: ${loser}, 毒药所有者: ${poisonOwner}`, 'lastWinners:' , room.lastWinners.toString());
   } else {
     // 切换回合
     room.currentTurn = room.currentTurn === PlayerRole.HOST ? PlayerRole.GUEST : PlayerRole.HOST;
